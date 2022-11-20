@@ -31,14 +31,16 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Autodesk.Navisworks.Api">
-      <HintPath>..\..\..\..\bimU.io.Client\Libs\Navisworks\2022\Autodesk.Navisworks.Api.dll</HintPath>
+    <Reference Include="Autodesk.Navisworks.Api, Version=19.0.1366.6, Culture=neutral, PublicKeyToken=d85e58fa5af9b484, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\bimU.io.Client\Libs\Navisworks\2020\Autodesk.Navisworks.Api.dll</HintPath>
     </Reference>
-    <Reference Include="Autodesk.Navisworks.ComApi">
-      <HintPath>..\..\..\..\bimU.io.Client\Libs\Navisworks\2022\Autodesk.Navisworks.ComApi.dll</HintPath>
+    <Reference Include="Autodesk.Navisworks.ComApi, Version=19.0.1366.6, Culture=neutral, PublicKeyToken=d85e58fa5af9b484, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\bimU.io.Client\Libs\Navisworks\2020\Autodesk.Navisworks.ComApi.dll</HintPath>
     </Reference>
     <Reference Include="Autodesk.Navisworks.Interop.ComApi">
-      <HintPath>..\..\..\..\bimU.io.Client\Libs\Navisworks\2022\Autodesk.Navisworks.Interop.ComApi.dll</HintPath>
+      <HintPath>..\..\..\..\bimU.io.Client\Libs\Navisworks\2020\Autodesk.Navisworks.Interop.ComApi.dll</HintPath>
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
     <Reference Include="bimU.io.Client.Core">
@@ -64,4 +66,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>SET RELEASEPATH="C:\ProgramData\bimU.io\plugins\"
+
+IF NOT EXIST  "%25RELEASEPATH%25" MKDIR "%25RELEASEPATH%25"
+copy /Y "$(TargetDir)\$(TargetName).dll" "%25RELEASEPATH%25\"</PostBuildEvent>
+  </PropertyGroup>
 </Project>
