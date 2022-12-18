@@ -209,7 +209,7 @@ namespace MyTeklaPlugin
 
         // TODO: double check if internal unit is mm
         private readonly static double unitFactor = 0.001;
-        public BIMUDM.Viewpoint GetViewpoint()
+        private BIMUDM.Viewpoint GetViewpoint()
         {
             BIMUDM.Viewpoint vp = new BIMUDM.Viewpoint();
 
