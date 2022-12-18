@@ -7,6 +7,7 @@ using TSG3D = Tekla.Structures.Geometry3d;
 using TS = Tekla.Structures;
 using TSM = Tekla.Structures.Model;
 using TSMUI = Tekla.Structures.Model.UI;
+using BIMUDM = bimU.io.Client.Core.DataModels;
 
 namespace MyTeklaPlugin
 {
@@ -121,7 +122,7 @@ namespace MyTeklaPlugin
         public double RebarRatio { get; set; }
 
         public string snapshot { get; set; }
-
+        public BIMUDM.Viewpoint viewpoint { get; set; }
         public List<TSMUI.ClipPlane> Clipplanes { set; get; }
         public List<TSG3D.LineSegment> Dimensions { set; get; }
         public TSG3D.Point CenterPoint { get; set; }

@@ -18,6 +18,10 @@ using Object = System.Object;
 using System.Drawing;
 using System.Windows.Threading;
 
+using BIMU = bimU.io.Client.Core;
+using BIMUDM = bimU.io.Client.Core.DataModels;
+using BIMUM = bimU.io.Client.Core.Messages;
+
 namespace MyTeklaPlugin
 {
     public class TeklaHelper
@@ -84,8 +88,8 @@ namespace MyTeklaPlugin
                 TS.ModelInternal.Operation.dotStartAction("ZoomToSelected", "");
                 CropAndZoomToSelectedPart(part, level, pos, ref column);
 
-                // 執行截圖
-                GetSnapshot(beam, level, pos, ref column);
+                column.snapshot = GetSnapshot();
+                column.viewpoint = GetViewpoint();
 
                 columnList.Add(column);
 
@@ -154,7 +158,7 @@ namespace MyTeklaPlugin
                 return "其他";
         }
 
-        public void GetSnapshot(Beam beam, string level, string pos, ref ColumnDesign column)
+        public string GetSnapshot()
         {
             // set up and run macro
             string macroFilename = "bimuiopluginscreenshot.cs";
@@ -199,9 +203,139 @@ namespace MyTeklaPlugin
                 }
                 return null;
             });
-            if (base64ImageString != null)
+            
+            return base64ImageString;
+        }
+
+        // TODO: double check if internal unit is mm
+        private readonly static double unitFactor = 0.001;
+        public BIMUDM.Viewpoint GetViewpoint()
+        {
+            BIMUDM.Viewpoint vp = new BIMUDM.Viewpoint();
+
+            try
             {
-                column.snapshot = base64ImageString;
+                TSMUI.ModelViewEnumerator mvEnum = TSMUI.ViewHandler.GetVisibleViews();
+                if (mvEnum.Count == 0)
+                {
+                    vp.statusCode = BIMUM.StatusCode.noTeklaViewOpened;
+                    BIMU.LoggerHepler.logger.Error("No Tekla view opened.");
+                    return vp;
+                }
+
+                mvEnum.MoveNext();
+                TSMUI.View activeView = mvEnum.Current;
+                TSMUI.ViewCamera camera = new TSMUI.ViewCamera();
+                camera.View = activeView;
+
+                vp.viewId = activeView.Identifier.ID.ToString();
+                vp.originatingSystem = string.Format("Tekla Structures {0}", TeklaStructuresInfo.GetCurrentProgramVersion());
+
+                // updates the camera parameters from the application view.
+                camera.Select();
+                Vector direction = camera.DirectionVector;
+                Vector upVector = camera.UpVector;
+                Vector location = new Vector(camera.Location) * unitFactor;
+
+                // write camera properties to viewpoint
+                vp.camera = new BIMUDM.Camera();
+                vp.camera.cameraDirection = new BIMUDM.XYZ() { x = direction.X, y = direction.Y, z = direction.Z };
+                vp.camera.cameraUpVector = new BIMUDM.XYZ() { x = upVector.X, y = upVector.Y, z = upVector.Z };
+                vp.camera.cameraViewPoint = new BIMUDM.XYZ() { x = location.X, y = location.Y, z = location.Z };
+                if (activeView.IsPerspectiveViewProjection())
+                {
+                    vp.camera.fieldOfView = camera.FieldOfView;
+                    BIMU.LoggerHepler.logger.Info("Active view is perspective 3D view");
+                }
+                else
+                {
+                    vp.camera.viewToWorldScale = camera.ZoomFactor;
+                    BIMU.LoggerHepler.logger.Info("Active view is orthographic 3D view");
+                }
+
+                // add selected elements            
+                TSMUI.ModelObjectSelector mos = new TSMUI.ModelObjectSelector();
+                var selectedModelObjects = mos.GetSelectedObjects();
+                int selectedCount = selectedModelObjects.GetSize();
+                BIMU.LoggerHepler.logger.Info("Number of selected model objects: {0}", selectedCount);
+                if (selectedCount > 0 && selectedCount < BIMU.ClientCommunicator.settings.selectedElementsLimit)
+                {
+                    vp.associatedElements = new List<BIMUDM.AssociatedElement>();
+                    foreach (ModelObject obj in selectedModelObjects)
+                    {
+                        if (obj != null)
+                        {
+                            vp.associatedElements.Add(new BIMUDM.AssociatedElement() { authoringToolId = obj.Identifier.ID.ToString(), ifcGuid = BIMUDM.IfcGuid.ToIfcGuid(obj.Identifier.GUID) });
+                        }
+                    }
+                }
+
+                // transform section box of work area to clipping planes
+                vp.clippingPlanes = new List<BIMUDM.ClippingPlane>();
+                BIMUDM.ClippingPlane xPositive = new BIMUDM.ClippingPlane()
+                {
+                    normal = new BIMUDM.XYZ() { x = 1, y = 0, z = 0 },
+                    constant = -activeView.WorkArea.MaxPoint.X * unitFactor
+                };
+                BIMUDM.ClippingPlane yPositive = new BIMUDM.ClippingPlane()
+                {
+                    normal = new BIMUDM.XYZ() { x = 0, y = 1, z = 0 },
+                    constant = -activeView.WorkArea.MaxPoint.Y * unitFactor
+                };
+                BIMUDM.ClippingPlane zPositive = new BIMUDM.ClippingPlane()
+                {
+                    normal = new BIMUDM.XYZ() { x = 0, y = 0, z = 1 },
+                    constant = -activeView.WorkArea.MaxPoint.Z * unitFactor
+                };
+                BIMUDM.ClippingPlane xNegative = new BIMUDM.ClippingPlane()
+                {
+                    normal = new BIMUDM.XYZ() { x = -1, y = 0, z = 0 },
+                    constant = activeView.WorkArea.MinPoint.X * unitFactor
+                };
+                BIMUDM.ClippingPlane yNegative = new BIMUDM.ClippingPlane()
+                {
+                    normal = new BIMUDM.XYZ() { x = 0, y = -1, z = 0 },
+                    constant = activeView.WorkArea.MinPoint.Y * unitFactor
+                };
+                BIMUDM.ClippingPlane zNegative = new BIMUDM.ClippingPlane()
+                {
+                    normal = new BIMUDM.XYZ() { x = 0, y = 0, z = -1 },
+                    constant = activeView.WorkArea.MinPoint.Z * unitFactor
+                };
+                vp.clippingPlanes.Add(xPositive);
+                vp.clippingPlanes.Add(yPositive);
+                vp.clippingPlanes.Add(zPositive);
+                vp.clippingPlanes.Add(xNegative);
+                vp.clippingPlanes.Add(yNegative);
+                vp.clippingPlanes.Add(zNegative);
+                BIMU.LoggerHepler.logger.Info("Work Area has been converted to clipping planes.");
+
+                // HTC: disable exporting clipping planes for now since it looks like work area (similar to section box) is more common? 
+                // add clippling planes
+                /*ClipPlaneCollection clipPlanes = activeView.GetClipPlanes();
+                if (clipPlanes.Count > 0)
+                {
+                    vp.clippingPlanes = new List<ClippingPlane>();
+                    IEnumerator planeEnum = clipPlanes.GetEnumerator();
+                    while (planeEnum.MoveNext())
+                    {
+                        ClipPlane clipPlane = planeEnum.Current as ClipPlane;
+                        if (clipPlane != null) 
+                        {
+                            Vector planeNormal = clipPlane.UpVector;
+                            Vector planeLocation = new Vector(clipPlane.Location) * unitFactor;
+                            vp.clippingPlanes.Add(new ClippingPlane() { normal = new XYZ() { x = planeNormal.X, y = planeNormal.Y, z = planeNormal.Z }, constant = planeNormal.Dot(planeLocation) });
+                        }
+                    }
+                }*/
+
+                return vp;
+            }
+            catch (Exception ex)
+            {
+                BIMU.LoggerHepler.logger.Error(ex, "Exception ocurred while exporting viewpoint.");
+                vp.statusCode = BIMUM.StatusCode.otherException;
+                return vp;
             }
         }
 
