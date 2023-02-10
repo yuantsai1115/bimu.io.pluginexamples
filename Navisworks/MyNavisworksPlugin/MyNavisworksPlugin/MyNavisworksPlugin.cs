@@ -13,7 +13,7 @@ namespace MyNavisworksPlugin
     public class MyNavisworksPlugin : IPlugin
     {
         private static Random random = new Random();
-        private static List<AuthoringToolClient> supportedClients = new List<AuthoringToolClient>(){ AuthoringToolClient.Navisworks2022 };
+        private static List<AuthoringToolClient> supportedClients = new List<AuthoringToolClient>(){ AuthoringToolClient.Navisworks2020 };
 
         public IEnumerable<AuthoringToolClient> getSupportedClients()
         {
