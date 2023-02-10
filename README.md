@@ -8,6 +8,14 @@ A web-based building information model (BIM) viewer for safety training on const
 - Provide images and specification for each critical area
 - Highlight BIM elements with animation for each critical area
 
+| <img src="https://user-images.githubusercontent.com/119405090/218071602-f71b1f63-53b6-43b5-9ffb-1d6379a4454c.png" width="600"> | 
+|:--:| 
+| *bimU Agile Table View* |
+
+| <img src="https://user-images.githubusercontent.com/119405090/218071642-edea991d-0a7f-4b36-8678-dc36a571635e.png" width="600"> | 
+|:--:| 
+| *bimU Agile Kanban View* |
+
 ## Live Demo
 Main branch is deployed to https://structural-inspection.netlify.app/.
 
