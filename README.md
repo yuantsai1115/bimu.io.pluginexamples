@@ -17,9 +17,6 @@ A bimU Agile plugin for automatically extracting rebar information and creating 
 |:--:| 
 | *bimU Agile Kanban View* |
 
-## Live Demo
-Main branch is deployed to https://structural-inspection.netlify.app/.
-
 ## Project Setup
 ### Prerequisites
 - Account for [bimU Agile](https://bimu.io) (Free to registered)
